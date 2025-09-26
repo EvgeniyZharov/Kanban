@@ -2,11 +2,6 @@ import psycopg2
 from psycopg2 import sql
 
 DB_CONFIG = {
-    'host': '193.162.143.84',
-    'database': 'kanban',
-    'user': 'kanban_user',  # или 'kanban_user'
-    'password': 'kanban_password123',  # замените на ваш пароль
-    'port': 5432
 }
 
 
@@ -103,4 +98,5 @@ def create_tables():
 
 if __name__ == "__main__":
     create_database_and_user()
+
     create_tables()

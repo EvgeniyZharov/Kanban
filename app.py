@@ -8,11 +8,6 @@ CORS(app)
 
 # Конфигурация базы данных
 DB_CONFIG = {
-    'host': '193.162.143.84',
-    'database': 'kanban',
-    'user': 'kanban_user',
-    'password': 'kanban_password123',
-    'port': 5432
 }
 
 def get_db():
@@ -248,4 +243,5 @@ def get_stats():
     return jsonify(stats)
 
 if __name__ == '__main__':
+
     app.run(debug=True, host='0.0.0.0', port=5000)

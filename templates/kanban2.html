@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Доска</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .column {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+
+        .column-header {
+            text-align: center;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .backlog .column-header { background-color: #f5f5f5; color: #666; border-left: 4px solid #9e9e9e; }
+        .todo .column-header { background-color: #e3f2fd; color: #1565c0; border-left: 4px solid #2196f3; }
+        .in-progress .column-header { background-color: #fff3e0; color: #ef6c00; border-left: 4px solid #ff9800; }
+        .done .column-header { background-color: #e8f5e8; color: #2e7d32; border-left: 4px solid #4caf50; }
+
+        .task-list {
+            min-height: 500px;
+        }
+
+        .task-card {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: move;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .task-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .task-card.priority-high { border-left: 4px solid #f44336; }
+        .task-card.priority-medium { border-left: 4px solid #ff9800; }
+        .task-card.priority-low { border-left: 4px solid #4caf50; }
+
+        .task-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .task-description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .task-assignee {
+            background-color: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .task-due-date {
+            background-color: #fff3e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            display: inline-block;
+        }
+
+        .task-due-date.overdue {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .task-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-edit {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background-color: #1976d2;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #d32f2f;
+        }
+
+        .add-task-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .add-task-btn:hover {
+            background-color: #45a049;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 600px;
+            max-width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .form-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-cancel {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-submit {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .priority-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .priority-high { background-color: #ffebee; color: #c62828; }
+        .priority-medium { background-color: #fff3e0; color: #ef6c00; }
+        .priority-low { background-color: #e8f5e8; color: #2e7d32; }
+
+        .task-list.over {
+            background-color: #f0f8ff;
+            border: 2px dashed #2196f3;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Kanban Доска проекта</h1>
+
+        <div class="kanban-board">
+            <div class="column backlog">
+                <div class="column-header">📥 Поставленные задачи</div>
+                <div class="task-list" data-status="backlog"></div>
+                <button class="add-task-btn" onclick="openModal('backlog')">+ Добавить задачу</button>
+            </div>
+
+            <div class="column todo">
+                <div class="column-header">⚡ В процессе</div>
+                <div class="task-list" data-status="todo"></div>
+                <button class="add-task-btn" onclick="openModal('todo')">+ Добавить задачу</button>
+            </div>
+
+            <div class="column in-progress">
+                <div class="column-header">📋 На тестировании</div>
+                <div class="task-list" data-status="in-progress"></div>
+                <button class="add-task-btn" onclick="openModal('in-progress')">+ Добавить задачу</button>
+            </div>
+
+            <div class="column done">
+                <div class="column-header">✅ Выполнено</div>
+                <div class="task-list" data-status="done"></div>
+                <button class="add-task-btn" onclick="openModal('done')">+ Добавить задачу</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления/редактирования задачи -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Новая задача</h2>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+
+                <div class="form-group">
+                    <label for="title">Заголовок задачи *</label>
+                    <input type="text" id="title" required placeholder="Введите название задачи">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Описание задачи</label>
+                    <textarea id="description" placeholder="Опишите детали задачи"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="assignee">Исполнитель</label>
+                        <select id="assignee">
+                            <option value="">Не назначен</option>
+                            {% for assignee in assignees %}
+                            <option value="{{ assignee }}">{{ assignee }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="priority">Приоритет</label>
+                        <select id="priority">
+                            <option value="low">Низкий</option>
+                            <option value="medium" selected>Средний</option>
+                            <option value="high">Высокий</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="due_date">Срок выполнения</label>
+                        <input type="date" id="due_date">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Статус</label>
+                        <select id="status">
+                            <option value="backlog">Поставленные задачи</option>
+                            <option value="todo">В процессе</option>
+                            <option value="in-progress">На тестировании</option>
+                            <option value="done">Выполнено</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn-submit">Сохранить задачу</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    let currentStatus = '';
+    let isEditing = false;
+    let draggedElement = null;
+    let dragSource = null;
+
+    // Загрузка задач при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTasks();
+        initDragAndDrop();
+    });
+
+    // Открытие модального окна
+    function openModal(status = '') {
+        currentStatus = status;
+        isEditing = false;
+        document.getElementById('modalTitle').textContent = 'Новая задача';
+        document.getElementById('taskId').value = '';
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('assignee').value = '';
+        document.getElementById('priority').value = 'medium';
+        document.getElementById('due_date').value = '';
+        document.getElementById('status').value = status || 'backlog';
+        document.getElementById('taskModal').style.display = 'block';
+    }
+
+    // Закрытие модального окна
+    function closeModal() {
+        document.getElementById('taskModal').style.display = 'none';
+    }
+
+    // Загрузка задач с сервера
+    async function loadTasks() {
+        try {
+            const response = await fetch('/api/tasks');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const tasks = await response.json();
+
+            // Очищаем все колонки
+            document.querySelectorAll('.task-list').forEach(column => {
+                column.innerHTML = '';
+            });
+
+            // Добавляем задачи в соответствующие колонки
+            tasks.forEach(task => {
+                addTaskToColumn(task);
+            });
+
+            // Переинициализируем drag-and-drop после загрузки задач
+            initDragAndDrop();
+
+        } catch (error) {
+            console.error('Ошибка загрузки задач:', error);
+            alert('Ошибка при загрузке задач: ' + error.message);
+        }
+    }
+
+    // Добавление задачи в колонку
+    function addTaskToColumn(task) {
+        const column = document.querySelector(`.task-list[data-status="${task.status}"]`);
+        if (!column) {
+            console.error(`Колонка со статусом "${task.status}" не найдена`);
+            return;
+        }
+
+        const taskElement = document.createElement('div');
+        taskElement.className = `task-card priority-${task.priority}`;
+        taskElement.draggable = true;
+        taskElement.dataset.taskId = task.id;
+        taskElement.dataset.status = task.status;
+
+        // Проверяем просроченность задачи
+        const today = new Date().toISOString().split('T')[0];
+        const dueDateClass = task.due_date && task.due_date < today ? 'overdue' : '';
+
+        taskElement.innerHTML = `
+            <div class="priority-badge priority-${task.priority}">
+                ${getPriorityText(task.priority)}
+            </div>
+            <div class="task-title">${escapeHtml(task.title)}</div>
+            <div class="task-description">${escapeHtml(task.description)}</div>
+
+            <div class="task-meta">
+                ${task.assignee ? `<span class="task-assignee">👤 ${escapeHtml(task.assignee)}</span>` : ''}
+                ${task.due_date ? `<span class="task-due-date ${dueDateClass}">📅 ${formatDate(task.due_date)}</span>` : ''}
+            </div>
+
+            <div class="task-meta">
+                <small>Создано: ${formatDateTime(task.created_at)}</small>
+                ${task.updated_at !== task.created_at ? `<br><small>Обновлено: ${formatDateTime(task.updated_at)}</small>` : ''}
+            </div>
+
+            <div class="task-actions">
+                <button class="btn btn-edit" onclick="editTask(${task.id})">✏️ Редактировать</button>
+                <button class="btn btn-delete" onclick="deleteTask(${task.id})">🗑️ Удалить</button>
+            </div>
+        `;
+
+        column.appendChild(taskElement);
+    }
+
+    // Получение текстового представления приоритета
+    function getPriorityText(priority) {
+        const priorities = {
+            'high': 'Высокий',
+            'medium': 'Средний',
+            'low': 'Низкий'
+        };
+        return priorities[priority] || priority;
+    }
+
+    // Форматирование даты
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString + 'T00:00:00');
+        return date.toLocaleDateString('ru-RU');
+    }
+
+    // Форматирование даты и времени
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        return date.toLocaleString('ru-RU');
+    }
+
+    // Экранирование HTML
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Инициализация drag and drop
+    function initDragAndDrop() {
+        // Удаляем старые обработчики
+        const taskCards = document.querySelectorAll('.task-card');
+        const columns = document.querySelectorAll('.task-list');
+
+        // Проверяем, что элементы существуют
+        if (taskCards.length === 0 || columns.length === 0) {
+            console.warn('No draggable elements found');
+            return;
+        }
+
+        taskCards.forEach(card => {
+            card.removeEventListener('dragstart', handleDragStart);
+            card.removeEventListener('dragend', handleDragEnd);
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+        });
+
+        columns.forEach(column => {
+            column.removeEventListener('dragover', handleDragOver);
+            column.removeEventListener('drop', handleDrop);
+            column.removeEventListener('dragenter', handleDragEnter);
+            column.removeEventListener('dragleave', handleDragLeave);
+
+            column.addEventListener('dragover', handleDragOver);
+            column.addEventListener('drop', handleDrop);
+            column.addEventListener('dragenter', handleDragEnter);
+            column.addEventListener('dragleave', handleDragLeave);
+        });
+
+        console.log('Drag and drop initialized');
+    }
+
+    function handleDragStart(e) {
+        draggedElement = this;
+        dragSource = this.parentNode;
+
+        console.log('Drag start:', {
+            taskId: this.dataset.taskId,
+            source: this.parentNode.dataset.status
+        });
+
+        // Безопасное изменение стилей
+        if (draggedElement) {
+            draggedElement.style.opacity = '0.6';
+        }
+
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.taskId);
+    }
+
+    function handleDragEnd(e) {
+        console.log('Drag end');
+
+        // Безопасное восстановление стилей
+        if (draggedElement) {
+            draggedElement.style.opacity = '1';
+        }
+
+        // Убираем подсветку со всех колонок
+        document.querySelectorAll('.task-list').forEach(col => {
+            col.classList.remove('over');
+        });
+
+        // Сбрасываем только если перетаскивание завершено
+        draggedElement = null;
+        dragSource = null;
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        console.log('Drop event');
+
+        // Безопасная проверка draggedElement
+        if (!draggedElement) {
+            console.error('No dragged element found');
+            return;
+        }
+
+        // Находим целевую колонку через событие drop
+        let targetColumn = null;
+
+        // Пытаемся найти колонку разными способами
+        if (e.target.classList.contains('task-list')) {
+            targetColumn = e.target;
+        } else if (e.target.closest('.task-list')) {
+            targetColumn = e.target.closest('.task-list');
+        } else {
+            // Если не нашли через event.target, ищем по координатам
+            const columns = document.querySelectorAll('.task-list');
+            for (let column of columns) {
+                const rect = column.getBoundingClientRect();
+                if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                    e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                    targetColumn = column;
+                    break;
+                }
+            }
+        }
+
+        // Проверяем, что нашли valid колонку
+        if (!targetColumn || !targetColumn.dataset || !targetColumn.dataset.status) {
+            console.error('Invalid target column:', targetColumn);
+            if (draggedElement) {
+                draggedElement.style.opacity = '1'; // Восстанавливаем видимость
+            }
+            return;
+        }
+
+        const newStatus = targetColumn.dataset.status;
+        const taskId = parseInt(draggedElement.dataset.taskId);
+
+        console.log('Drop details:', {
+            taskId: taskId,
+            newStatus: newStatus,
+            targetColumn: targetColumn
+        });
+
+        // Визуально перемещаем карточку
+        targetColumn.appendChild(draggedElement);
+        draggedElement.style.opacity = '1';
+        targetColumn.classList.remove('over');
+
+        // Обновляем задачу на сервере
+        fetch(`/api/tasks/${taskId}/move`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => {
+            if (!response.ok) {
+                // В случае ошибки возвращаем карточку обратно
+                if (dragSource && draggedElement) {
+                    dragSource.appendChild(draggedElement);
+                }
+                return response.json().then(error => {
+                    throw new Error(error.error || 'Ошибка сервера');
+                });
+            }
+            return response.json();
+        })
+        .then(updatedTask => {
+            console.log('Задача успешно перемещена:', updatedTask);
+            // Обновляем данные карточки
+            draggedElement.dataset.status = newStatus;
+        })
+        .catch(error => {
+            console.error('Ошибка перемещения задачи:', error);
+            alert('Ошибка при перемещении задачи: ' + error.message);
+
+            // Восстанавливаем исходное состояние
+            if (dragSource && draggedElement) {
+                dragSource.appendChild(draggedElement);
+                draggedElement.style.opacity = '1';
+            }
+        });
+
+        // Сбрасываем состояние
+        draggedElement = null;
+        dragSource = null;
+    }
+
+    function handleDragEnter(e) {
+        e.preventDefault();
+        this.classList.add('over');
+    }
+
+    function handleDragLeave(e) {
+        // Убираем класс over только если мы действительно вышли из элемента
+        if (!this.contains(e.relatedTarget)) {
+            this.classList.remove('over');
+        }
+    }
+
+    // Обработка формы
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const taskId = document.getElementById('taskId').value;
+        const title = document.getElementById('title').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const assignee = document.getElementById('assignee').value;
+        const priority = document.getElementById('priority').value;
+        const due_date = document.getElementById('due_date').value;
+        const status = document.getElementById('status').value;
+
+        if (!title) {
+            alert('Пожалуйста, введите заголовок задачи');
+            return;
+        }
+
+        if (isEditing && taskId) {
+            updateTask(parseInt(taskId), title, description, assignee, priority, due_date, status);
+        } else {
+            createTask(title, description, assignee, priority, due_date, status);
+        }
+    });
+
+    // Создание задачи
+    async function createTask(title, description, assignee, priority, due_date, status) {
+        try {
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                    assignee: assignee || '',
+                    priority: priority,
+                    due_date: due_date || null,
+                    status: status
+                })
+            });
+
+            if (response.ok) {
+                closeModal();
+                await loadTasks();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Ошибка создания задачи:', error);
+            alert('Ошибка при создании задачи: ' + error.message);
+        }
+    }
+
+    // Редактирование задачи
+    async function editTask(taskId) {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const task = await response.json();
+
+            isEditing = true;
+            document.getElementById('modalTitle').textContent = 'Редактировать задачу';
+            document.getElementById('taskId').value = task.id;
+            document.getElementById('title').value = task.title || '';
+            document.getElementById('description').value = task.description || '';
+            document.getElementById('assignee').value = task.assignee || '';
+            document.getElementById('priority').value = task.priority || 'medium';
+            document.getElementById('due_date').value = task.due_date || '';
+            document.getElementById('status').value = task.status || 'backlog';
+            document.getElementById('taskModal').style.display = 'block';
+
+        } catch (error) {
+            console.error('Ошибка загрузки задачи:', error);
+            alert('Ошибка при загрузке задачи: ' + error.message);
+        }
+    }
+
+    // Обновление задачи
+    async function updateTask(taskId, title, description, assignee, priority, due_date, status) {
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                    assignee: assignee || '',
+                    priority: priority,
+                    due_date: due_date || null,
+                    status: status
+                })
+            });
+
+            if (response.ok) {
+                closeModal();
+                await loadTasks();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Ошибка обновления задачи:', error);
+            alert('Ошибка при обновлении задачи: ' + error.message);
+        }
+    }
+
+    // Удаление задачи
+    async function deleteTask(taskId) {
+        if (!confirm('Вы уверены, что хотите удалить эту задачу?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await loadTasks();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Ошибка при удалении задачи');
+            }
+        } catch (error) {
+            console.error('Ошибка удаления задачи:', error);
+            alert('Ошибка при удалении задачи: ' + error.message);
+        }
+    }
+
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        const modal = document.getElementById('taskModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+
+    // Закрытие модального окна по ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+</script>
+</body>
+</html>
